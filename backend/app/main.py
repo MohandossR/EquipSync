@@ -25,6 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.technicians import router as technicians_router
 from app.api.routes.service_reports import router as service_reports_router
 from app.api.routes.verification import router as verification_router
+from app.routers.resource_reservation import router as resource_reservation_router
 
 
 app = FastAPI(
@@ -53,6 +54,7 @@ app.include_router(dashboard_router)
 app.include_router(technicians_router)
 app.include_router(service_reports_router)
 app.include_router(verification_router)
+app.include_router(resource_reservation_router)
 
 @app.get("/")
 def root():
