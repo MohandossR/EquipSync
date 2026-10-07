@@ -1,0 +1,291 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.database.connection import get_db
+from app.models.part import Part
+from app.models.resource import Resource
+from app.schemas.inventory import (
+    PartCreate,
+    PartUpdate,
+    PartResponse,
+    ResourceCreate,
+    ResourceUpdate,
+    ResourceResponse,
+)
+from app.services.inventory_service import (
+    is_part_available,
+    is_part_low_stock,
+    is_resource_available,
+    update_part_stock,
+    update_resource_stock,
+)
+
+router = APIRouter(prefix="/api", tags=["Inventory"])
+
+
+def part_response(part: Part) -> dict:
+    return {
+        "id": part.id,
+        "name": part.name,
+        "part_code": part.part_code,
+        "description": part.description,
+        "quantity": part.quantity,
+        "minimum_stock": part.minimum_stock,
+        "available": part.quantity > 0,
+        "low_stock": is_part_low_stock(part),
+    }
+
+
+def resource_response(resource: Resource) -> dict:
+    return {
+        "id": resource.id,
+        "resource_code": resource.resource_code,
+        "name": resource.name,
+        "resource_type": resource.resource_type,
+        "quantity": resource.quantity,
+        "is_available": resource.is_available,
+        "available": resource.is_available and resource.quantity > 0,
+    }
+
+
+@router.post("/parts", response_model=PartResponse)
+def create_part(
+    part_data: PartCreate,
+    db: Session = Depends(get_db),
+):
+    existing_part = db.query(Part).filter(
+        Part.part_code == part_data.part_code
+    ).first()
+
+    if existing_part:
+        raise HTTPException(
+            status_code=400,
+            detail="Part code already exists",
+        )
+
+    part = Part(**part_data.model_dump())
+    db.add(part)
+    db.commit()
+    db.refresh(part)
+
+    return part_response(part)
+
+
+@router.get("/parts", response_model=list[PartResponse])
+def get_parts(db: Session = Depends(get_db)):
+    parts = db.query(Part).all()
+    return [part_response(part) for part in parts]
+
+
+@router.get("/parts/low-stock", response_model=list[PartResponse])
+def get_low_stock_parts(db: Session = Depends(get_db)):
+    parts = db.query(Part).filter(
+        Part.quantity <= Part.minimum_stock
+    ).all()
+
+    return [part_response(part) for part in parts]
+
+
+@router.get("/parts/{part_id}", response_model=PartResponse)
+def get_part(
+    part_id: int,
+    db: Session = Depends(get_db),
+):
+    part = db.query(Part).filter(Part.id == part_id).first()
+
+    if not part:
+        raise HTTPException(
+            status_code=404,
+            detail="Part not found",
+        )
+
+    return part_response(part)
+
+
+@router.get("/parts/{part_id}/availability")
+def check_part_availability(
+    part_id: int,
+    required_quantity: int = 1,
+    db: Session = Depends(get_db),
+):
+    if required_quantity <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Required quantity must be greater than zero",
+        )
+
+    part = db.query(Part).filter(Part.id == part_id).first()
+
+    if not part:
+        raise HTTPException(
+            status_code=404,
+            detail="Part not found",
+        )
+
+    available = is_part_available(part, required_quantity)
+
+    return {
+        "part_id": part.id,
+        "part_name": part.name,
+        "required_quantity": required_quantity,
+        "available_quantity": part.quantity,
+        "available": available,
+        "low_stock": is_part_low_stock(part),
+    }
+
+
+@router.put("/parts/{part_id}", response_model=PartResponse)
+def update_part(
+    part_id: int,
+    part_data: PartUpdate,
+    db: Session = Depends(get_db),
+):
+    part = db.query(Part).filter(Part.id == part_id).first()
+
+    if not part:
+        raise HTTPException(
+            status_code=404,
+            detail="Part not found",
+        )
+
+    update_data = part_data.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(part, key, value)
+
+    db.commit()
+    db.refresh(part)
+
+    return part_response(part)
+
+
+@router.post("/resources", response_model=ResourceResponse)
+def create_resource(
+    resource_data: ResourceCreate,
+    db: Session = Depends(get_db),
+):
+    existing_resource = db.query(Resource).filter(
+        Resource.resource_code == resource_data.resource_code
+    ).first()
+
+    if existing_resource:
+        raise HTTPException(
+            status_code=400,
+            detail="Resource code already exists",
+        )
+
+    resource = Resource(
+        resource_code=resource_data.resource_code,
+        name=resource_data.name,
+        resource_type=resource_data.resource_type,
+        quantity=resource_data.quantity,
+        is_available=resource_data.quantity > 0,
+    )
+
+    db.add(resource)
+    db.commit()
+    db.refresh(resource)
+
+    return resource_response(resource)
+
+
+@router.get("/resources", response_model=list[ResourceResponse])
+def get_resources(db: Session = Depends(get_db)):
+    resources = db.query(Resource).all()
+    return [resource_response(resource) for resource in resources]
+
+
+@router.get("/resources/{resource_id}", response_model=ResourceResponse)
+def get_resource(
+    resource_id: int,
+    db: Session = Depends(get_db),
+):
+    resource = db.query(Resource).filter(
+        Resource.id == resource_id
+    ).first()
+
+    if not resource:
+        raise HTTPException(
+            status_code=404,
+            detail="Resource not found",
+        )
+
+    return resource_response(resource)
+
+
+@router.get("/resources/{resource_id}/availability")
+def check_resource_availability(
+    resource_id: int,
+    required_quantity: int = 1,
+    db: Session = Depends(get_db),
+):
+    if required_quantity <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Required quantity must be greater than zero",
+        )
+
+    resource = db.query(Resource).filter(
+        Resource.id == resource_id
+    ).first()
+
+    if not resource:
+        raise HTTPException(
+            status_code=404,
+            detail="Resource not found",
+        )
+
+    available = is_resource_available(
+        resource,
+        required_quantity,
+    )
+
+    return {
+        "resource_id": resource.id,
+        "resource_name": resource.name,
+        "required_quantity": required_quantity,
+        "available_quantity": resource.quantity,
+        "available": available,
+    }
+
+
+@router.put("/resources/{resource_id}", response_model=ResourceResponse)
+def update_resource(
+    resource_id: int,
+    resource_data: ResourceUpdate,
+    db: Session = Depends(get_db),
+):
+    resource = db.query(Resource).filter(
+        Resource.id == resource_id
+    ).first()
+
+    if not resource:
+        raise HTTPException(
+            status_code=404,
+            detail="Resource not found",
+        )
+
+    update_data = resource_data.model_dump(exclude_unset=True)
+
+    if "quantity" in update_data:
+        new_quantity = update_data.pop("quantity")
+
+        try:
+            resource = update_resource_stock(
+                db,
+                resource,
+                new_quantity,
+            )
+        except ValueError as error:
+            raise HTTPException(
+                status_code=400,
+                detail=str(error),
+            )
+
+    for key, value in update_data.items():
+        setattr(resource, key, value)
+
+    db.commit()
+    db.refresh(resource)
+
+    return resource_response(resource)

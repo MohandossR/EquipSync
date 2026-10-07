@@ -18,6 +18,7 @@ from app.models.service_request_status_history import ServiceRequestStatusHistor
 from app.models.service_report import ServiceReport
 from app.models.service_photo import ServicePhoto
 from app.models.notification import Notification
+from app.routers.inventory import router as inventory_router
 
 app = FastAPI(
     title="EquipSync API",
@@ -28,6 +29,7 @@ app = FastAPI(
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth_router)
+app.include_router(inventory_router)
 
 
 @app.get("/")
