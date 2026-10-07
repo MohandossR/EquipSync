@@ -12,6 +12,9 @@ import CreateRequest from './pages/customer/CreateRequest';
 import RequestList from './pages/customer/RequestList';
 import CustomerRequestDetail from './pages/customer/RequestDetail';
 import Login from './pages/Login';
+import Assistant from "./pages/Assistant";
+import Notifications from "./pages/Notifications";
+import Register from "./pages/Register";
 
 export default function App() {
   return (
@@ -36,6 +39,13 @@ export default function App() {
           <Route path="requests" element={<RequestList />} />
           <Route path="request/:id" element={<CustomerRequestDetail />} />
         </Route>
+        {/* AI Assistant */}
+        <Route path="/assistant" element={<Assistant />} />
+        {/* Notifications */}
+        <Route path="/notifications" element={<Notifications />} />
+        {/* Register */}
+        <Route path="/register" element={<Register />} />
+
       </Routes>
     </BrowserRouter>
   );

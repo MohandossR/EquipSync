@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 
 export default function Login() {
@@ -19,9 +19,36 @@ export default function Login() {
     try {
       const data = await apiService.login(email, password);
 
+      // Store JWT
       localStorage.setItem('token', data.access_token);
 
-      navigate('/');
+      // Decode JWT payload to get role
+      const payload = JSON.parse(
+        atob(
+          data.access_token
+            .split('.')[1]
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+        )
+      );
+
+      const role = payload.role;
+
+      // Role-based redirect
+      if (role === 'TECHNICIAN') {
+        navigate('/technician');
+      } else if (role === 'CUSTOMER') {
+        navigate('/customer/requests');
+      } else if (
+        role === 'ADMIN' ||
+        role === 'OPERATIONS_MANAGER'
+      ) {
+        navigate('/');
+      } else {
+        setError('Unknown user role.');
+        localStorage.removeItem('token');
+      }
+
     } catch (err) {
       setError(
         err.response?.data?.detail ||
@@ -37,7 +64,9 @@ export default function Login() {
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200 p-8">
 
+        {/* Logo / Header */}
         <div className="text-center mb-8">
+
           <div className="mx-auto w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
             EQ
           </div>
@@ -49,16 +78,20 @@ export default function Login() {
           <p className="text-slate-500 mt-1">
             Industrial Service Management
           </p>
+
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700">
+          <div className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
           </div>
         )}
 
+        {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
 
+          {/* Email */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
               Email
@@ -74,6 +107,7 @@ export default function Login() {
             />
           </div>
 
+          {/* Password */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
               Password
@@ -89,17 +123,35 @@ export default function Login() {
             />
           </div>
 
+          {/* Sign In */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg disabled:opacity-50 transition"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
         </form>
 
+        {/* Registration */}
+        <div className="text-center mt-6 pt-5 border-t border-slate-200">
+
+          <p className="text-sm text-slate-500">
+            Don't have an account?{' '}
+
+            <Link
+              to="/register"
+              className="text-blue-600 font-semibold hover:underline"
+            >
+              Register
+            </Link>
+          </p>
+
+        </div>
+
       </div>
+
     </div>
   );
 }

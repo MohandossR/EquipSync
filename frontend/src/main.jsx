@@ -8,3 +8,11 @@ createRoot(document.getElementById('root')).render(
     <App />
   </StrictMode>,
 )
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js")
+            .then(() => console.log("EquipSync service worker registered"))
+            .catch(err => console.error("SW error:", err));
+    });
+}

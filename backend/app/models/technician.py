@@ -65,3 +65,4 @@ class Technician(Base):
     )
 
     user = relationship("User")
+    skills = relationship("TechnicianSkill")

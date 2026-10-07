@@ -26,7 +26,10 @@ from app.api.routes.technicians import router as technicians_router
 from app.api.routes.service_reports import router as service_reports_router
 from app.api.routes.verification import router as verification_router
 from app.routers.resource_reservation import router as resource_reservation_router
-
+from app.api.routes.smart_features import router as smart_features_router
+from app.api.routes.assignments import router as assignments_router
+from app.api.routes.notifications import router as notifications_router
+from app.api.routes.assistant import router as assistant_router
 
 app = FastAPI(
     title="EquipSync API",
@@ -55,6 +58,10 @@ app.include_router(technicians_router)
 app.include_router(service_reports_router)
 app.include_router(verification_router)
 app.include_router(resource_reservation_router)
+app.include_router(smart_features_router)
+app.include_router(assignments_router)
+app.include_router(notifications_router)
+app.include_router(assistant_router)
 
 @app.get("/")
 def root():

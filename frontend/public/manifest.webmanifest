@@ -1,0 +1,10 @@
+{
+  "name": "EquipSync",
+  "short_name": "EquipSync",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "description": "Industrial equipment service management platform",
+  "icons": []
+}
