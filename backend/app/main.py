@@ -20,6 +20,12 @@ from app.models.service_photo import ServicePhoto
 from app.models.notification import Notification
 from app.routers.inventory import router as inventory_router
 from app.api.routes.service_requests import router as service_requests_router
+from app.api.routes.dashboard import router as dashboard_router
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.routes.technicians import router as technicians_router
+from app.api.routes.service_reports import router as service_reports_router
+from app.api.routes.verification import router as verification_router
+
 
 app = FastAPI(
     title="EquipSync API",
@@ -27,12 +33,26 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth_router)
 app.include_router(inventory_router)
 app.include_router(service_requests_router)
-
+app.include_router(dashboard_router)
+app.include_router(technicians_router)
+app.include_router(service_reports_router)
+app.include_router(verification_router)
 
 @app.get("/")
 def root():
