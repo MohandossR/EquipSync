@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from app.api.routes.auth import router as auth_router
 from app.database.connection import Base, engine
 from app.models.user import User
+from app.models.site import Site
+from app.models.machine import Machine
+from app.models.service_request import ServiceRequest
 
 app = FastAPI(
     title="EquipSync API",
