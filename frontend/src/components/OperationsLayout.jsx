@@ -62,9 +62,12 @@ export default function OperationsLayout() {
 
           {/* User / Logout */}
           <div className="flex items-center gap-4">
-            <div className="text-sm text-slate-500 font-medium border-r pr-4 border-slate-200">
-              Operations Manager
-            </div>
+            <Link
+  to="/"
+  className="text-sm text-slate-500 font-medium border-r pr-4 border-slate-200 hover:text-blue-700 cursor-pointer"
+>
+  Operations Manager
+</Link>
 
             <button
               onClick={handleLogout}
